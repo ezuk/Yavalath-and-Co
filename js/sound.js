@@ -4,39 +4,19 @@
 
 // stone / wood: [frequency Hz, decay s, level] per resonance.
 // noise: [level, decay s, smoothing 0..1 (lower is duller)].
-// bounces: [time s, level] for the knock and any settling taps after it.
-export const PRESETS = [
-  { name: 'Current',
-    stone: [[2380, 0.006, 0.5], [3910, 0.004, 0.32], [5630, 0.0025, 0.2]],
-    wood: [[310, 0.016, 0.55], [560, 0.011, 0.4], [930, 0.007, 0.26]],
-    noise: [0.9, 0.0012, 0.45], bounces: [[0, 0.36], [0.152, 0.1], [0.229, 0.035]] },
-  { name: 'Soft knock',
-    stone: [[1500, 0.004, 0.3], [2400, 0.0025, 0.15]],
-    wood: [[260, 0.012, 0.6], [480, 0.008, 0.4]],
-    noise: [0.6, 0.001, 0.25], bounces: [[0, 0.42], [0.152, 0.08]] },
-  { name: 'Low thud',
-    stone: [[1200, 0.003, 0.15]],
-    wood: [[180, 0.012, 0.7], [340, 0.008, 0.45]],
-    noise: [0.5, 0.0012, 0.15], bounces: [[0, 0.5]] },
-  { name: 'Stone on thick board',
-    stone: [[1900, 0.003, 0.35]],
-    wood: [[420, 0.009, 0.55], [760, 0.006, 0.3]],
-    noise: [0.7, 0.0008, 0.3], bounces: [[0, 0.42], [0.152, 0.07]] },
-  { name: 'Muted tap',
-    stone: [],
-    wood: [[230, 0.008, 0.7], [410, 0.005, 0.3]],
-    noise: [0.8, 0.0015, 0.1], bounces: [[0, 0.55]] },
-  { name: 'Dry tick',
-    stone: [[1700, 0.0025, 0.45], [2600, 0.0018, 0.2]],
-    wood: [[380, 0.005, 0.35]],
-    noise: [0.6, 0.0006, 0.3], bounces: [[0, 0.45]] },
-];
-const DEFAULT = 0;
+// bounces: [time s, level] for the knock and the settling tap after it.
+// Chosen by ear: a soft, low knock. Longer decays start to ring like a drum.
+const KNOCK = {
+  stone: [[1200, 0.004, 0.3], [1920, 0.0025, 0.15]],
+  wood: [[210, 0.012, 0.6], [385, 0.008, 0.4]],
+  noise: [0.6, 0.001, 0.2],
+  bounces: [[0, 0.27], [0.152, 0.05]],
+};
 
 let ctx = null;
-const buffers = new Map();
+let click = null;
 
-function renderClick(rate, preset) {
+function renderClick(rate, preset = KNOCK) {
   const length = Math.floor(rate * 0.3);
   const data = new Float32Array(length);
   const [noiseLevel, noiseDecay, smoothing] = preset.noise;
@@ -58,18 +38,16 @@ function renderClick(rate, preset) {
   return data;
 }
 
-export function playClick(delayMs = 150, presetIndex = DEFAULT) {
+export function playClick(delayMs = 150) {
   try {
     ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
     if (ctx.state === 'suspended') ctx.resume();
-    let buffer = buffers.get(presetIndex);
-    if (!buffer) {
-      buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.3), ctx.sampleRate);
-      buffer.getChannelData(0).set(renderClick(ctx.sampleRate, PRESETS[presetIndex]));
-      buffers.set(presetIndex, buffer);
+    if (!click) {
+      click = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.3), ctx.sampleRate);
+      click.getChannelData(0).set(renderClick(ctx.sampleRate));
     }
     const src = ctx.createBufferSource();
-    src.buffer = buffer;
+    src.buffer = click;
     src.playbackRate.value = 0.93 + Math.random() * 0.14; // no two stones land quite alike
     src.connect(ctx.destination);
     src.start(ctx.currentTime + delayMs / 1000);
