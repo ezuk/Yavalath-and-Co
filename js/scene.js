@@ -51,17 +51,8 @@ function prism(radius, rotation, depth, bevel) {
   return g;
 }
 
-// Candidate looks for sinking the tiles into the base. rim: height of the
-// frame's top above the tile tops. hole: 'hex' one straight-sided recess,
-// 'fitted' a recess that follows the tiles' zigzag edge, 'sockets' one well
-// per tile.
-const INSETS = {
-  1: { hole: 'hex', rim: 0 },
-  2: { hole: 'hex', rim: 0.3 },
-  3: { hole: 'fitted', rim: 0 },
-  4: { hole: 'fitted', rim: 0.25 },
-  5: { hole: 'sockets', rim: 0.1, tile: 0.84 },
-};
+// Height of the frame's top above the tile tops: the tiles sit sunk in the base.
+const RIM = 0.25;
 
 function hexPoints(cx, cy, radius, rotation) {
   return Array.from({ length: 6 }, (_, k) => {
@@ -91,12 +82,11 @@ function fieldOutline() {
   return loop;
 }
 
-function frameGeometry(variant) {
+// The raised frame around the tiles, cut to follow their zigzag edge.
+function frameGeometry() {
   const shape = new THREE.Shape(hexPoints(0, 0, BOARD_RADIUS - 0.06, 0));
-  if (variant.hole === 'hex') shape.holes.push(new THREE.Path(hexPoints(0, 0, 8.05, 0).reverse()));
-  else if (variant.hole === 'fitted') shape.holes.push(new THREE.Path(fieldOutline().reverse()));
-  else for (let i = 0; i < N; i++) { const [x, z] = cellXZ(i); shape.holes.push(new THREE.Path(hexPoints(x, -z, 0.9, Math.PI / 6).reverse())); }
-  const depth = variant.rim + 0.42, bevel = 0.05;
+  shape.holes.push(new THREE.Path(fieldOutline().reverse()));
+  const depth = RIM + 0.42, bevel = 0.05;
   const g = new THREE.ExtrudeGeometry(shape, { depth: depth - bevel, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2, curveSegments: 1 });
   g.rotateX(-Math.PI / 2);
   g.translate(0, -depth, 0); // top face at y = 0
@@ -174,15 +164,11 @@ export class BoardScene {
     slab.castShadow = true;
     this.root.add(slab);
 
-    const variant = INSETS[new URLSearchParams(location.search).get('board')] || null;
-    if (variant) {
-      const frame = new THREE.Mesh(frameGeometry(variant), slab.material);
-      frame.position.y = variant.rim;
-      frame.receiveShadow = true;
-      frame.castShadow = true;
-      this.root.add(frame);
-    }
-    const tileRadius = variant && variant.tile ? variant.tile : 0.94;
+    const frame = new THREE.Mesh(frameGeometry(), slab.material);
+    frame.position.y = RIM;
+    frame.receiveShadow = true;
+    frame.castShadow = true;
+    this.root.add(frame);
 
     const table = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.42 }));
     table.rotation.x = -Math.PI / 2;
@@ -190,7 +176,7 @@ export class BoardScene {
     table.receiveShadow = true;
     this.scene.add(table);
 
-    const tileGeo = prism(tileRadius, Math.PI / 6, 0.3, 0.07);
+    const tileGeo = prism(0.94, Math.PI / 6, 0.3, 0.07);
     this.tiles = [];
     for (let i = 0; i < N; i++) {
       // Slight per-tile variation so the board reads as cut wood rather than plastic.
