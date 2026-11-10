@@ -1,6 +1,6 @@
 // Offline support: precache the whole app so it runs without a network.
 // Bump VERSION whenever the file list changes.
-const VERSION = 'v5';
+const VERSION = 'v6';
 const CACHE = 'yavalath-co-' + VERSION;
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
@@ -34,7 +34,9 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
       try {
-        const res = await fetch(request);
+        // 'no-cache' revalidates with the server, so the browser's own ten-minute
+        // cache of the host's files cannot hold back a new release.
+        const res = await fetch(request.url, { cache: 'no-cache' });
         if (res.ok) cache.put(request, res.clone());
         return res;
       } catch {
