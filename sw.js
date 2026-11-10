@@ -1,6 +1,6 @@
 // Offline support: precache the whole app so it runs without a network.
 // Bump VERSION whenever the file list changes.
-const VERSION = 'v8';
+const VERSION = 'v9';
 const CACHE = 'yavalath-co-' + VERSION;
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
