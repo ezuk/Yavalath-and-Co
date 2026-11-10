@@ -171,10 +171,25 @@ function buildShelf() {
   });
 }
 
+// The designer credit, each name linked to the designer's BoardGameGeek page.
+function creditNodes(g) {
+  const nodes = g.via ? [g.via + ' by '] : [];
+  g.by.forEach((d, k) => {
+    if (k) nodes.push(' & ');
+    const a = document.createElement('a');
+    a.href = d.url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = d.name;
+    nodes.push(a);
+  });
+  return nodes;
+}
+
 let currentGame = CATALOGUE[0];
 function openSetup(g) {
   currentGame = g;
-  $('setup-by').textContent = `${g.by}, ${g.year}`;
+  $('setup-by').replaceChildren(...creditNodes(g), `, ${g.year}`);
   $('setup-name').textContent = g.name;
   $('setup-blurb').textContent = g.blurb;
   document.querySelector(`input[name=level][value=${prefs.level}]`).checked = true;
@@ -382,6 +397,7 @@ function startGame(saved) {
   derive();
   hideSheet();
   $('game-name').textContent = currentGame.name;
+  $('game-by').replaceChildren(currentGame.via ? '' : 'by ', ...creditNodes(currentGame));
   enterBoard('play');
   scene.clear();
   input.ctx = playCtx;
@@ -539,6 +555,7 @@ function startLesson() {
   session.token++;
   lesson.game = currentGame;
   $('game-name').textContent = currentGame.name;
+  $('game-by').replaceChildren(currentGame.via ? '' : 'by ', ...creditNodes(currentGame));
   $('game-sub').textContent = 'Interactive lesson';
   enterBoard('lesson');
   input.ctx = lessonCtx;

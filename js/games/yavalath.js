@@ -1,4 +1,4 @@
-// Yavalath (LUDI, 2007). Four or more in a row wins; exactly three loses.
+// Yavalath (Ludi by Cameron Browne, 2007). Four or more in a row wins; exactly three loses.
 
 import { N, NB, ringDistance } from '../hex.js';
 import { W, B, P, put, boardView, cloneBoardState, emptyCells } from './util.js';

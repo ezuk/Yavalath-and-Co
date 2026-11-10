@@ -1,6 +1,6 @@
 # Yavalath & Co.
 
-A single-player web app for the fifteen games in the book *Yavalath & Co.* by
+A single-player web app for the fifteen games in the book *Yavalath & Co.* (nestorgames) by
 Néstor Romeral Andrés: a 3D board, a computer opponent, and an interactive
 lesson for each game. It installs to a phone's home screen and plays offline.
 
@@ -51,7 +51,7 @@ Installing as an app needs HTTPS, which Pages provides.
 
 ## Credits
 
-Games designed by Cameron Browne's LUDI, Néstor Romeral Andrés, Cameron Browne,
+Games designed by Ludi by Cameron Browne, Néstor Romeral Andrés, Cameron Browne,
 Dieter Stein, Stephen Linhart, Víkingur Fjalar Eiríksson, Élanor Grace Rodeffer
 and Nick Bentley. Inventors retain the rights to their games.
 

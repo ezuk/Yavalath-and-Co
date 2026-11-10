@@ -1,4 +1,4 @@
-// Pentalath (LUDI, 2007). Five in a row, with Go-style capture.
+// Pentalath (Ludi by Cameron Browne, 2007). Five in a row, with Go-style capture.
 
 import { N, NB } from '../hex.js';
 import { W, B, P, put, boardView, cloneBoardState, group, hasLiberty, lineThrough, FIVES, share, sigmoid } from './util.js';
