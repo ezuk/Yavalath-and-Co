@@ -51,6 +51,58 @@ function prism(radius, rotation, depth, bevel) {
   return g;
 }
 
+// Candidate looks for sinking the tiles into the base. rim: height of the
+// frame's top above the tile tops. hole: 'hex' one straight-sided recess,
+// 'fitted' a recess that follows the tiles' zigzag edge, 'sockets' one well
+// per tile.
+const INSETS = {
+  1: { hole: 'hex', rim: 0 },
+  2: { hole: 'hex', rim: 0.3 },
+  3: { hole: 'fitted', rim: 0 },
+  4: { hole: 'fitted', rim: 0.25 },
+  5: { hole: 'sockets', rim: 0.1, tile: 0.84 },
+};
+
+function hexPoints(cx, cy, radius, rotation) {
+  return Array.from({ length: 6 }, (_, k) => {
+    const a = rotation + (k * Math.PI) / 3;
+    return new THREE.Vector2(cx + radius * Math.cos(a), cy + radius * Math.sin(a));
+  });
+}
+
+// Outline of the whole field of tiles: every hex edge that belongs to one cell only.
+function fieldOutline() {
+  const key = (p) => `${Math.round(p.x * 100)},${Math.round(p.y * 100)}`;
+  const edges = new Map();
+  for (let i = 0; i < N; i++) {
+    const [x, z] = cellXZ(i);
+    const pts = hexPoints(x, -z, 1, Math.PI / 6);
+    for (let k = 0; k < 6; k++) {
+      const a = pts[k], b = pts[(k + 1) % 6];
+      const id = [key(a), key(b)].sort().join('|');
+      if (edges.has(id)) edges.delete(id); else edges.set(id, [a, b]);
+    }
+  }
+  const next = new Map();
+  for (const [a, b] of edges.values()) next.set(key(a), b);
+  const first = edges.values().next().value[0];
+  const loop = [first];
+  for (let p = next.get(key(first)); key(p) !== key(first); p = next.get(key(p))) loop.push(p);
+  return loop;
+}
+
+function frameGeometry(variant) {
+  const shape = new THREE.Shape(hexPoints(0, 0, BOARD_RADIUS - 0.06, 0));
+  if (variant.hole === 'hex') shape.holes.push(new THREE.Path(hexPoints(0, 0, 8.05, 0).reverse()));
+  else if (variant.hole === 'fitted') shape.holes.push(new THREE.Path(fieldOutline().reverse()));
+  else for (let i = 0; i < N; i++) { const [x, z] = cellXZ(i); shape.holes.push(new THREE.Path(hexPoints(x, -z, 0.9, Math.PI / 6).reverse())); }
+  const depth = variant.rim + 0.42, bevel = 0.05;
+  const g = new THREE.ExtrudeGeometry(shape, { depth: depth - bevel, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2, curveSegments: 1 });
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, -depth, 0); // top face at y = 0
+  return g;
+}
+
 const sameStack = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 
 export class BoardScene {
@@ -122,13 +174,23 @@ export class BoardScene {
     slab.castShadow = true;
     this.root.add(slab);
 
+    const variant = INSETS[new URLSearchParams(location.search).get('board')] || null;
+    if (variant) {
+      const frame = new THREE.Mesh(frameGeometry(variant), slab.material);
+      frame.position.y = variant.rim;
+      frame.receiveShadow = true;
+      frame.castShadow = true;
+      this.root.add(frame);
+    }
+    const tileRadius = variant && variant.tile ? variant.tile : 0.94;
+
     const table = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.42 }));
     table.rotation.x = -Math.PI / 2;
     table.position.y = -1.15;
     table.receiveShadow = true;
     this.scene.add(table);
 
-    const tileGeo = prism(0.94, Math.PI / 6, 0.3, 0.07);
+    const tileGeo = prism(tileRadius, Math.PI / 6, 0.3, 0.07);
     this.tiles = [];
     for (let i = 0; i < N; i++) {
       // Slight per-tile variation so the board reads as cut wood rather than plastic.
