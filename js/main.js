@@ -1,6 +1,7 @@
 // App shell: screens, the play loop against the AI, and the lesson runner.
 
 import { BoardScene } from './scene.js';
+import { playClick } from './sound.js';
 import { GAMES } from './games/index.js';
 import { at, N } from './hex.js';
 import * as rulesEngine from './games/yavalath.js';
@@ -28,24 +29,9 @@ const savePrefs = () => store.set('prefs', prefs);
 
 // ---- sound and touch feedback ------------------------------------------
 
-let audio = null;
 function clack(delay = 150) {
   if (navigator.vibrate) setTimeout(() => navigator.vibrate(8), delay);
-  if (!prefs.sound) return;
-  try {
-    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-    const t = audio.currentTime + delay / 1000;
-    const osc = audio.createOscillator();
-    const gain = audio.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(820, t);
-    osc.frequency.exponentialRampToValueAtTime(230, t + 0.06);
-    gain.gain.setValueAtTime(0.2, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
-    osc.connect(gain).connect(audio.destination);
-    osc.start(t);
-    osc.stop(t + 0.1);
-  } catch { /* no audio available */ }
+  if (prefs.sound) playClick(delay);
 }
 
 // ---- scene --------------------------------------------------------------

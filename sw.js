@@ -1,11 +1,11 @@
 // Offline support: precache the app, then serve from cache while refreshing in
 // the background. Bump VERSION whenever the file list changes.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'yavalath-co-' + VERSION;
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'fonts/fraunces.woff2', 'fonts/figtree.woff2', 'vendor/three.js',
-  'js/main.js', 'js/scene.js', 'js/hex.js',
+  'js/main.js', 'js/scene.js', 'js/hex.js', 'js/sound.js',
   'js/games/index.js', 'js/games/yavalath.js', 'js/games/yavalath-tutorial.js',
   'js/ai/worker.js', 'js/ai/yavalath-ai.js',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png',
