@@ -266,11 +266,12 @@ export class BoardScene {
   }
 
   // Carries the top piece of path[0] through each cell of the path in turn.
-  movePiece(path, animate) {
+  // `level` is where it comes to rest in the destination stack: 0 when it
+  // captures what was there, higher when it lands on top.
+  movePiece(path, level, animate) {
     const mesh = this.stacks[path[0]].pop();
     if (!mesh) return;
     const dest = path[path.length - 1];
-    const level = this.stacks[dest].length;
     this.stacks[dest].push(mesh);
     const [x1, z1] = cellXZ(dest);
     if (!animate || this.reducedMotion) { mesh.position.set(x1, this.heightAt(level), z1); return; }
@@ -296,7 +297,11 @@ export class BoardScene {
   apply(view, fx, { animate = true } = {}) {
     const want = view.cells;
     const moved = (fx && fx.moved) || [];
-    for (const path of moved) if (path.length > 1 && this.stacks[path[0]].length) this.movePiece(path, animate);
+    for (const path of moved) {
+      if (path.length < 2 || !this.stacks[path[0]].length) continue;
+      const dest = path[path.length - 1];
+      this.movePiece(path, Math.max((want[dest] || []).length - 1, 0), animate);
+    }
     const settle = animate && moved.length ? 300 * Math.max(...moved.map((p) => p.length - 1)) : 0;
     for (let i = 0; i < N; i++) {
       const stack = this.stacks[i];
@@ -307,10 +312,7 @@ export class BoardScene {
       if (extra > 0 && sameStack(has.slice(extra), target)) {
         // Captured from underneath: the arriving piece replaces what was there.
         const gone = stack.splice(0, extra);
-        const drop = () => {
-          gone.forEach((m) => this.discard(m, animate));
-          stack.forEach((m, k) => { m.position.y = this.heightAt(k); });
-        };
+        const drop = () => gone.forEach((m) => this.discard(m, animate));
         if (settle) this.tween(1, () => {}, settle - 60, drop); else drop();
       } else if (extra > 0 && sameStack(has.slice(0, target.length), target)) {
         stack.splice(target.length).forEach((m) => this.discard(m, animate));
