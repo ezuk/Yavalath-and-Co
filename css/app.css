@@ -53,6 +53,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .hero h1 { font-family: var(--display); font-weight: 560; font-size: clamp(44px, 13vw, 76px); line-height: 0.95; letter-spacing: -0.02em; text-wrap: balance; }
 .hero h1 span { font-style: italic; font-weight: 400; color: var(--brass); }
 .hero .eyebrow { margin-bottom: 10px; }
+.hero .eyebrow .pub { display: inline-block; }
+.hero .eyebrow a { pointer-events: auto; }
 .shelf { background: var(--ink); padding: 14px var(--gutter) calc(32px + var(--safe-b)); min-height: 38dvh; }
 .shelf-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .shelf h2 { font-family: var(--display); font-weight: 500; font-size: 22px; }
