@@ -1,8 +1,7 @@
-// The collection. Games with `ready: true` are playable; the rest are listed
-// so the shelf shows what is coming.
+// The collection, in the book's order. Rules live in the module of the same id.
 
 export const GAMES = [
-  { id: 'yavalath', name: 'Yavalath', by: 'LUDI', year: 2007, ready: true,
+  { id: 'yavalath', name: 'Yavalath', by: 'LUDI', year: 2007,
     blurb: 'Four in a row wins. Three in a row loses.' },
   { id: 'pentalath', name: 'Pentalath', by: 'LUDI', year: 2007,
     blurb: 'Five in a row, with surrounded stones captured.' },

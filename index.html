@@ -60,7 +60,10 @@
       <span id="turn-chip" class="stone-chip"></span>
       <span id="status" aria-live="polite"></span>
     </div>
+    <p id="note" class="note" hidden></p>
+    <div id="picks" class="picks" hidden></div>
     <div class="bar-actions">
+      <button id="done" class="btn primary" hidden>Finish move</button>
       <button id="swap" class="btn primary" hidden>Swap sides</button>
       <button id="undo" class="btn ghost">Undo</button>
       <button id="restart" class="btn ghost">New game</button>
@@ -74,8 +77,11 @@
     </div>
     <h3 id="lesson-title"></h3>
     <p id="lesson-text" aria-live="polite"></p>
+    <p id="lesson-note" class="note" hidden></p>
+    <div id="lesson-picks" class="picks" hidden></div>
     <div class="bar-actions">
       <button id="lesson-prev" class="btn ghost">Back</button>
+      <button id="lesson-done" class="btn ghost" hidden>Finish move</button>
       <button id="lesson-next" class="btn primary">Next</button>
     </div>
   </footer>
@@ -96,8 +102,6 @@
   </fieldset>
   <fieldset class="seg" id="side">
     <legend>You play</legend>
-    <label><input type="radio" name="side" value="1" checked><span>White, first</span></label>
-    <label><input type="radio" name="side" value="2"><span>Black, second</span></label>
   </fieldset>
   <div class="sheet-actions">
     <button id="learn" class="btn ghost wide">Learn the rules</button>

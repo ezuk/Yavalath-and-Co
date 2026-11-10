@@ -63,11 +63,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .game-row .num { font-family: var(--display); font-style: italic; color: var(--muted); font-size: 15px; font-variant-numeric: tabular-nums; }
 .game-row .name { font-family: var(--display); font-size: 21px; font-weight: 500; }
 .game-row .blurb { grid-column: 2 / 4; font-size: 14.5px; line-height: 1.4; color: var(--muted); }
-.game-row .tag { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px; }
-.game-row.ready .tag { color: var(--brass-ink); background: var(--brass); border-color: transparent; }
-.game-row:not(.ready) { cursor: default; }
-.game-row:not(.ready) .name { color: #b9c2bb; }
-.game-row.ready:active { opacity: 0.7; }
+.game-row .go { font-size: 24px; line-height: 1; color: var(--brass); }
+.game-row:active { opacity: 0.7; }
 
 /* ---- Game ---------------------------------------------------------- */
 .topbar { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 6px; padding: calc(8px + var(--safe-t)) 10px 8px; }
@@ -90,6 +87,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .stone-chip[data-c="2"] { background: radial-gradient(circle at 35% 30%, #5a5d66, #0e0f12 60%); box-shadow: 0 0 0 1px rgba(243, 234, 217, 0.25); }
 .stone-chip.thinking { animation: pulse 1s ease-in-out infinite; }
 @keyframes pulse { 50% { transform: scale(0.72); opacity: 0.6; } }
+.note { text-align: center; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: -6px; }
+.lesson .note { text-align: left; margin-top: 0; }
+.picks { display: flex; gap: 8px; }
+.pick { flex: 1; min-height: 44px; padding: 0 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 15px; color: var(--muted); background: rgba(0, 0, 0, 0.25); box-shadow: inset 0 0 0 1px var(--line); }
+.pick[aria-pressed="true"] { color: var(--paper); background: var(--ink-3); box-shadow: inset 0 0 0 2px var(--brass); }
+.pick.action { color: var(--paper); background: rgba(243, 234, 217, 0.08); }
+.stone-chip[data-c="3"] { background: radial-gradient(circle at 35% 30%, #f08a78, #b22d22 65%); }
 .bar-actions, .sheet-actions { display: flex; gap: 10px; }
 .btn { flex: 1; min-height: 48px; padding: 0 16px; border-radius: 14px; font-weight: 600; font-size: 16px; white-space: nowrap; }
 .btn.primary { background: var(--brass); color: var(--brass-ink); }
@@ -99,7 +103,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 button:focus-visible, .seg input:focus-visible + span { outline: 2px solid var(--brass); outline-offset: 2px; }
 
 .lesson h3 { font-family: var(--display); font-weight: 520; font-size: 24px; text-wrap: balance; }
-.lesson p { font-size: 16px; line-height: 1.5; color: #d5d9cf; min-height: 4.5em; text-wrap: pretty; }
+.lesson #lesson-text { font-size: 16px; line-height: 1.5; color: #d5d9cf; min-height: 4.5em; text-wrap: pretty; }
 .lesson { gap: 8px; }
 .lesson .bar-actions { margin-top: 6px; }
 .lesson-head { display: flex; align-items: center; justify-content: space-between; }
@@ -141,7 +145,7 @@ button:focus-visible, .seg input:focus-visible + span { outline: 2px solid var(-
 }
 @media (max-height: 520px) and (orientation: landscape) {
   .hero { height: 70dvh; min-height: 0; }
-  .lesson p { min-height: 0; }
+  .lesson #lesson-text { min-height: 0; }
   .bar { flex-direction: row; align-items: center; }
 }
 @media (prefers-reduced-motion: reduce) {

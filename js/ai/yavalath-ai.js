@@ -218,8 +218,3 @@ export function chooseMove(board, player, levelName) {
   const res = search(b, player, candidates, level);
   return { move: res.move, reason: 'search', iterations: res.iterations };
 }
-
-// Should Black take over White's opening stone?
-export function shouldSwap(openingCell) {
-  return ringDistance(openingCell) <= 2;
-}

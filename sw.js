@@ -1,13 +1,16 @@
-// Offline support: precache the app, then serve from cache while refreshing in
-// the background. Bump VERSION whenever the file list changes.
-const VERSION = 'v2';
+// Offline support: precache the whole app so it runs without a network.
+// Bump VERSION whenever the file list changes.
+const VERSION = 'v3';
 const CACHE = 'yavalath-co-' + VERSION;
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'fonts/fraunces.woff2', 'fonts/figtree.woff2', 'vendor/three.js',
   'js/main.js', 'js/scene.js', 'js/hex.js', 'js/sound.js',
-  'js/games/index.js', 'js/games/yavalath.js', 'js/games/yavalath-tutorial.js',
-  'js/ai/worker.js', 'js/ai/yavalath-ai.js',
+  'js/games/index.js', 'js/games/all.js', 'js/games/util.js',
+  'js/games/yavalath.js', 'js/games/pentalath.js', 'js/games/yavalanchor.js', 'js/games/yavalade.js', 'js/games/cross.js',
+  'js/games/omega.js', 'js/games/manalath.js', 'js/games/odd.js', 'js/games/coffee.js', 'js/games/ducks.js',
+  'js/games/susan.js', 'js/games/taacoca.js', 'js/games/quantum.js', 'js/games/playwin.js', 'js/games/onager.js',
+  'js/ai/worker.js', 'js/ai/mcts.js', 'js/ai/yavalath-ai.js',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png',
 ];
 
@@ -23,17 +26,20 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// Network first, so a new release shows up on the next load; the cache is the
+// fallback when offline.
 self.addEventListener('fetch', (e) => {
   const { request } = e;
   if (request.method !== 'GET' || new URL(request.url).origin !== location.origin) return;
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
-      const cached = await cache.match(request, { ignoreSearch: true });
-      const fresh = fetch(request).then((res) => {
+      try {
+        const res = await fetch(request);
         if (res.ok) cache.put(request, res.clone());
         return res;
-      }).catch(() => cached);
-      return cached || fresh;
+      } catch {
+        return (await cache.match(request, { ignoreSearch: true })) || Response.error();
+      }
     }),
   );
 });

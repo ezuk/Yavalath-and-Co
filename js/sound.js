@@ -5,8 +5,10 @@
 let ctx = null;
 let click = null;
 
-const STONE = [[2380, 0.011, 0.5], [3910, 0.007, 0.32], [5630, 0.004, 0.2]];
-const WOOD = [[290, 0.05, 0.6], [540, 0.032, 0.4], [910, 0.02, 0.26]];
+// [frequency Hz, decay s, level]. Decays are kept very short: any longer and
+// the knock starts to ring like a drum.
+const STONE = [[2380, 0.006, 0.5], [3910, 0.004, 0.32], [5630, 0.0025, 0.2]];
+const WOOD = [[310, 0.016, 0.55], [560, 0.011, 0.4], [930, 0.007, 0.26]];
 
 function renderClick(rate) {
   const length = Math.floor(rate * 0.3);
@@ -25,9 +27,9 @@ function renderClick(rate) {
       data[i] += gain * v * Math.min(1, t / 0.0004);
     }
   };
-  knock(0, 0.5);
-  knock(0.152, 0.13); // the stone settles with two smaller bounces,
-  knock(0.229, 0.045); // timed to the drop animation
+  knock(0, 0.36);
+  knock(0.152, 0.1); // the stone settles with two smaller bounces,
+  knock(0.229, 0.035); // timed to the drop animation
   return data;
 }
 

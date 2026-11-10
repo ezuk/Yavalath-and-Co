@@ -1,19 +1,24 @@
-// The 3D board: tiles, stones, lighting, camera and touch picking.
-// Knows nothing about rules. Games tell it what to show.
+// The 3D board: tiles, pieces, lighting, camera and touch picking.
+// Knows nothing about rules. Games hand it a view (what sits on each cell)
+// and it animates from what it was showing to what it should show.
 
 import * as THREE from 'three';
-import { cells, N, cellXZ } from './hex.js';
+import { N, cellXZ } from './hex.js';
 
-const STONE_COLORS = {
-  1: { color: 0xf3eee4, roughness: 0.22 },
-  2: { color: 0x15161a, roughness: 0.18 },
-  3: { color: 0xc4392d, roughness: 0.25 },
+// Piece codes used in views: 1 white, 2 black, 3 red, 4 breadcrumb.
+const PIECES = {
+  1: { color: 0xf3eee4, roughness: 0.22, scale: 1 },
+  2: { color: 0x15161a, roughness: 0.18, scale: 1 },
+  3: { color: 0xc4392d, roughness: 0.25, scale: 1 },
+  4: { color: 0xd9a441, roughness: 0.7, scale: 0.55 },
 };
 const TILE_BASE = new THREE.Color(0xb07f45);
 const HINT = new THREE.Color(0xffc45e);
+const SELECT = new THREE.Color(0x4fd1c5);
 const WIN_GLOW = new THREE.Color(0xffb53d);
 const LOSE_GLOW = new THREE.Color(0xff3b2a);
 const STONE_Y = 0.27;
+const STACK_STEP = 0.5;
 const BOARD_RADIUS = 8.7;
 
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
@@ -46,13 +51,16 @@ function prism(radius, rotation, depth, bevel) {
   return g;
 }
 
+const sameStack = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+
 export class BoardScene {
   constructor(canvas) {
     this.canvas = canvas;
     this.onTap = null;
     this.tweens = [];
-    this.stones = new Map();
+    this.stacks = Array.from({ length: N }, () => []); // meshes per cell, bottom first
     this.hints = new Set();
+    this.selected = new Set();
     this.glows = [];
     this.azimuth = 0;
     this.elevation = 0.95;
@@ -141,10 +149,10 @@ export class BoardScene {
 
     this.stoneGeo = new THREE.SphereGeometry(0.66, 40, 20);
     this.stoneGeo.scale(1, 0.41, 1);
-    this.stoneMats = {};
-    for (const [k, v] of Object.entries(STONE_COLORS)) {
-      this.stoneMats[k] = new THREE.MeshPhysicalMaterial({
-        color: v.color, roughness: v.roughness, clearcoat: 1, clearcoatRoughness: 0.08, emissive: 0x000000,
+    this.pieceMats = {};
+    for (const [k, v] of Object.entries(PIECES)) {
+      this.pieceMats[k] = new THREE.MeshPhysicalMaterial({
+        color: v.color, roughness: v.roughness, clearcoat: k === '4' ? 0 : 1, clearcoatRoughness: 0.08,
       });
     }
 
@@ -155,91 +163,185 @@ export class BoardScene {
     this.marker.rotation.x = Math.PI / 2;
     this.marker.visible = false;
     this.root.add(this.marker);
+
+    // The direction rod used by Coffee: lies across the top of a stone.
+    this.rod = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.1, 0.1, 1.24, 14),
+      new THREE.MeshPhysicalMaterial({ color: 0xf3eee4, roughness: 0.35, clearcoat: 0.6 }),
+    );
+    this.rod.rotation.z = Math.PI / 2; // lie flat along x
+    this.rodPivot = new THREE.Group();
+    this.rodPivot.add(this.rod);
+    this.rodPivot.visible = false;
+    this.rod.castShadow = true;
+    this.root.add(this.rodPivot);
   }
 
-  // ---- stones ----------------------------------------------------------
+  // ---- pieces ----------------------------------------------------------
 
-  placeStone(cell, color, { animate = true, mark = false } = {}) {
-    this.removeStone(cell, { animate: false });
-    const mesh = new THREE.Mesh(this.stoneGeo, this.stoneMats[color].clone());
-    const [x, z] = cellXZ(cell);
-    mesh.position.set(x, STONE_Y, z);
-    mesh.userData.color = color;
+  heightAt(level) { return STONE_Y + level * STACK_STEP; }
+
+  makePiece(code) {
+    const mesh = new THREE.Mesh(this.stoneGeo, this.pieceMats[code]);
+    mesh.userData.code = code;
+    mesh.scale.setScalar(PIECES[code].scale);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     this.root.add(mesh);
-    this.stones.set(cell, mesh);
-    if (animate && !this.reducedMotion) {
-      mesh.position.y = STONE_Y + 5;
-      this.tween(420, (t) => { mesh.position.y = STONE_Y + 5 * (1 - bounce(t)); });
-      const tile = this.tiles[cell];
-      this.tween(380, (t) => { tile.position.y = -0.09 * Math.sin(Math.PI * easeOut(t)); }, 150);
-    }
-    if (mark) this.setMarker(cell);
-    this.needsRender = true;
     return mesh;
   }
 
-  removeStone(cell, { animate = true } = {}) {
-    const mesh = this.stones.get(cell);
-    if (!mesh) return;
-    this.stones.delete(cell);
-    if (this.markerCell === cell) this.setMarker(-1);
-    const dispose = () => { this.root.remove(mesh); mesh.material.dispose(); };
+  addPiece(cell, code, animate) {
+    const stack = this.stacks[cell];
+    const mesh = this.makePiece(code);
+    const [x, z] = cellXZ(cell);
+    const y = this.heightAt(stack.length);
+    mesh.position.set(x, y, z);
+    stack.push(mesh);
     if (animate && !this.reducedMotion) {
-      this.tween(220, (t) => {
-        const s = 1 - easeInOut(t);
-        mesh.scale.setScalar(Math.max(s, 0.001));
-        mesh.position.y = STONE_Y + t * 0.8;
-      }, 0, dispose);
-    } else dispose();
+      mesh.position.y = y + 5;
+      this.tween(420, (t) => { mesh.position.y = y + 5 * (1 - bounce(t)); });
+      const tile = this.tiles[cell];
+      this.tween(380, (t) => { tile.position.y = -0.09 * Math.sin(Math.PI * easeOut(t)); }, 150);
+    }
+  }
+
+  discard(mesh, animate) {
+    const remove = () => this.root.remove(mesh);
+    if (animate && !this.reducedMotion) {
+      const y0 = mesh.position.y, s0 = mesh.scale.x;
+      this.tween(240, (t) => {
+        mesh.scale.setScalar(Math.max(s0 * (1 - easeInOut(t)), 0.001));
+        mesh.position.y = y0 + t * 0.8;
+      }, 0, remove);
+    } else remove();
+  }
+
+  // Carries the top piece of path[0] through each cell of the path in turn.
+  movePiece(path, animate) {
+    const mesh = this.stacks[path[0]].pop();
+    if (!mesh) return;
+    const dest = path[path.length - 1];
+    const level = this.stacks[dest].length;
+    this.stacks[dest].push(mesh);
+    const [x1, z1] = cellXZ(dest);
+    if (!animate || this.reducedMotion) { mesh.position.set(x1, this.heightAt(level), z1); return; }
+    const hop = 300;
+    let from = { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
+    for (let k = 1; k < path.length; k++) {
+      const [x, z] = cellXZ(path[k]);
+      const last = k === path.length - 1;
+      // Intermediate landings sit on whatever is there; only the last one is final.
+      const y = last ? this.heightAt(level) : this.heightAt(this.stacks[path[k]].length);
+      const a = from, b = { x, y, z };
+      const lift = 0.5 + 0.22 * Math.hypot(b.x - a.x, b.z - a.z);
+      this.tween(hop, (t) => {
+        const e = easeInOut(t);
+        mesh.position.set(a.x + (b.x - a.x) * e, a.y + (b.y - a.y) * e + lift * Math.sin(Math.PI * e), a.z + (b.z - a.z) * e);
+      }, (k - 1) * hop);
+      from = b;
+    }
+  }
+
+  // Makes the board show `view`. `fx.moved` lists paths pieces travelled, so
+  // they slide or leap instead of vanishing and reappearing.
+  apply(view, fx, { animate = true } = {}) {
+    const want = view.cells;
+    const moved = (fx && fx.moved) || [];
+    for (const path of moved) if (path.length > 1 && this.stacks[path[0]].length) this.movePiece(path, animate);
+    const settle = animate && moved.length ? 300 * Math.max(...moved.map((p) => p.length - 1)) : 0;
+    for (let i = 0; i < N; i++) {
+      const stack = this.stacks[i];
+      const has = stack.map((m) => m.userData.code);
+      const target = want[i] || [];
+      if (sameStack(has, target)) continue;
+      const extra = has.length - target.length;
+      if (extra > 0 && sameStack(has.slice(extra), target)) {
+        // Captured from underneath: the arriving piece replaces what was there.
+        const gone = stack.splice(0, extra);
+        const drop = () => {
+          gone.forEach((m) => this.discard(m, animate));
+          stack.forEach((m, k) => { m.position.y = this.heightAt(k); });
+        };
+        if (settle) this.tween(1, () => {}, settle - 60, drop); else drop();
+      } else if (extra > 0 && sameStack(has.slice(0, target.length), target)) {
+        stack.splice(target.length).forEach((m) => this.discard(m, animate));
+      } else if (extra < 0 && sameStack(target.slice(0, has.length), has)) {
+        for (let k = has.length; k < target.length; k++) this.addPiece(i, target[k], animate);
+      } else {
+        stack.splice(0).forEach((m) => this.discard(m, false));
+        target.forEach((code) => this.addPiece(i, code, false));
+      }
+    }
+    this.setRod(view.rod);
+    // The rod already marks the latest stone.
+    this.setMarker(!view.rod && fx && fx.last !== undefined ? fx.last : -1);
     this.needsRender = true;
   }
 
-  clearStones({ animate = false } = {}) {
-    for (const cell of [...this.stones.keys()]) this.removeStone(cell, { animate });
+  clear() {
+    for (const stack of this.stacks) stack.splice(0).forEach((m) => this.root.remove(m));
     this.clearEffects();
+    this.setRod(null);
   }
 
-  // Makes the board match `board` (array of 0 / colour per cell) with minimal changes.
-  sync(board, { animate = false } = {}) {
-    for (let i = 0; i < N; i++) {
-      const has = this.stones.get(i);
-      const want = board[i];
-      if (has && (!want || has.userData.color !== want)) this.removeStone(i, { animate });
-      if (want && !this.stones.has(i)) this.placeStone(i, want, { animate });
+  pieceCount() { return this.stacks.reduce((n, s) => n + s.length, 0); }
+
+  setRod(rod) {
+    this.rodPivot.visible = !!rod;
+    if (rod) {
+      const [x, z] = cellXZ(rod.cell);
+      const stack = this.stacks[rod.cell];
+      this.rodPivot.position.set(x, this.heightAt(stack.length - 1) + 0.3, z);
+      // Light rod on a dark stone (the coffee bean), dark rod on a light one.
+      const onDark = stack.length && stack[stack.length - 1].userData.code === 2;
+      this.rod.material.color.setHex(onDark ? 0xf3eee4 : 0x2c1a10);
+      // Axes 0, 1, 2 follow hex directions (1,0), (0,1), (-1,1): 0, -60 and -120 degrees.
+      this.rodPivot.rotation.y = -rod.axis * Math.PI / 3;
     }
+    this.needsRender = true;
   }
 
   setMarker(cell) {
     this.markerCell = cell;
-    this.marker.visible = cell >= 0;
-    if (cell >= 0) {
+    this.marker.visible = cell >= 0 && this.stacks[cell].length > 0;
+    if (this.marker.visible) {
       const [x, z] = cellXZ(cell);
-      this.marker.position.set(x, STONE_Y + 0.265, z);
+      const top = this.stacks[cell][this.stacks[cell].length - 1];
+      const scale = PIECES[top.userData.code].scale;
+      this.marker.position.set(x, this.heightAt(this.stacks[cell].length - 1) + 0.265 * scale, z);
     }
     this.needsRender = true;
   }
 
   // ---- effects ---------------------------------------------------------
 
+  resetTile(i) { this.tiles[i].material.emissive.setScalar(0); }
+
+  // Pulsing cells: where the player may tap next.
   setHints(list) {
-    for (const i of this.hints) this.tiles[i].material.emissive.setScalar(0);
+    for (const i of this.hints) this.resetTile(i);
     this.hints = new Set(list || []);
+    this.paintSelected();
     this.needsRender = true;
   }
 
-  // Highlights a finished line on its tiles: gold and lifted for a win, red for a loss.
+  // Steady cells: what the player has picked up so far.
+  setSelected(list) {
+    for (const i of this.selected) this.resetTile(i);
+    this.selected = new Set(list || []);
+    this.paintSelected();
+    this.needsRender = true;
+  }
+
+  paintSelected() {
+    for (const i of this.selected) this.tiles[i].material.emissive.copy(SELECT).multiplyScalar(0.45);
+  }
+
+  // Highlights a finished line on its tiles: gold for a win, red for a loss.
   markLine(list, kind) {
-    const colour = kind === 'win' ? WIN_GLOW : LOSE_GLOW;
-    list.forEach((cell, k) => {
-      const mesh = this.stones.get(cell);
-      if (!mesh) return;
-      this.glows.push({ tile: this.tiles[cell], colour, phase: k * 0.5 });
-      if (kind === 'win' && !this.reducedMotion) {
-        this.tween(500, (t) => { mesh.position.y = STONE_Y + 0.35 * easeOut(t); }, 120 * k);
-      }
-    });
+    const colour = kind === 'lose' ? LOSE_GLOW : WIN_GLOW;
+    list.forEach((cell, k) => this.glows.push({ tile: this.tiles[cell], colour, phase: k * 0.5 }));
     this.marker.visible = false;
     this.needsRender = true;
   }
@@ -248,6 +350,7 @@ export class BoardScene {
     for (const g of this.glows) g.tile.material.emissive.setScalar(0);
     this.glows = [];
     this.setHints([]);
+    this.setSelected([]);
     this.setMarker(-1);
   }
 
@@ -256,8 +359,11 @@ export class BoardScene {
   setInsets(top, bottom, { animate = true } = {}) {
     const from = { ...this.insets };
     const to = { top, bottom };
+    if (Math.abs(from.top - top) < 1 && Math.abs(from.bottom - bottom) < 1) return;
     if (!animate || this.reducedMotion) { this.insets = to; this.updateCamera(); return; }
-    this.tween(600, (t) => {
+    const id = (this.insetTween = (this.insetTween || 0) + 1);
+    this.tween(450, (t) => {
+      if (id !== this.insetTween) return; // a newer layout has taken over
       const e = easeInOut(t);
       this.insets = { top: from.top + (to.top - from.top) * e, bottom: from.bottom + (to.bottom - from.bottom) * e };
       this.updateCamera();
@@ -397,7 +503,9 @@ export class BoardScene {
     if (this.hints.size || this.glows.length) {
       active = true;
       const pulse = 0.5 + 0.5 * Math.sin(now * 0.005);
-      for (const i of this.hints) this.tiles[i].material.emissive.copy(HINT).multiplyScalar(0.18 + 0.32 * pulse);
+      for (const i of this.hints) {
+        if (!this.selected.has(i)) this.tiles[i].material.emissive.copy(HINT).multiplyScalar(0.18 + 0.32 * pulse);
+      }
       for (const g of this.glows) {
         const p = 0.5 + 0.5 * Math.sin(now * 0.006 - g.phase);
         g.tile.material.emissive.copy(g.colour).multiplyScalar(0.3 + 0.5 * p);

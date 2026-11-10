@@ -1,10 +1,10 @@
 // Runs AI searches off the UI thread so the board stays responsive.
-import { chooseMove as yavalath } from './yavalath-ai.js';
-
-const engines = { yavalath };
+import { MODULES, replay } from '../games/all.js';
+import { chooseMove } from './mcts.js';
 
 self.onmessage = (e) => {
-  const { id, game, board, player, level } = e.data;
-  const result = engines[game](Int8Array.from(board), player, level);
-  self.postMessage({ id, ...result });
+  const { id, gameId, seed, actions, level } = e.data;
+  const game = MODULES[gameId];
+  const move = chooseMove(game, replay(game, seed, actions), level);
+  self.postMessage({ id, move });
 };
