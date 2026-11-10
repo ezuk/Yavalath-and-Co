@@ -20,7 +20,7 @@ npm run serve   # http://localhost:8080
 npm test        # rules and AI tests
 ```
 
-Pushing to `main` deploys to GitHub Pages through `.github/workflows/pages.yml`
+Pushing to `master` deploys to GitHub Pages through `.github/workflows/pages.yml`
 (enable Pages with "GitHub Actions" as the source in the repository settings).
 Installing as an app needs HTTPS, which Pages provides.
 
