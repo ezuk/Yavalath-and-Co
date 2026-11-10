@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Yavalath &amp; Co.</title>
+<meta name="description" content="Fifteen abstract games on one hexagonal board. Play against the computer and learn each game with an interactive lesson.">
+<meta name="theme-color" content="#0d171b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Yavalath">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preload" href="fonts/fraunces.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/app.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three.js" } }</script>
+</head>
+<body data-screen="home">
+<canvas id="board" aria-label="Game board"></canvas>
+
+<main id="home" class="screen">
+  <header class="hero">
+    <p class="eyebrow">Fifteen games, one board</p>
+    <h1>Yavalath <span>&amp; Co.</span></h1>
+  </header>
+  <section class="shelf">
+    <div class="shelf-head">
+      <h2>The games</h2>
+      <button id="install" class="chip-btn" hidden>Install app</button>
+    </div>
+    <ol id="games" class="games"></ol>
+    <p id="ios-hint" class="fineprint" hidden>To install on iPhone, tap Share, then “Add to Home Screen”.</p>
+    <p class="fineprint">Games from the book <em>Yavalath &amp; Co.</em> by Néstor Romeral Andrés. Each game belongs to its inventor.</p>
+  </section>
+</main>
+
+<section id="game" class="screen" hidden>
+  <header class="topbar">
+    <button id="back" class="icon-btn" aria-label="Back to games">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <div class="topbar-title">
+      <strong id="game-name"></strong>
+      <span id="game-sub"></span>
+    </div>
+    <button id="sound-btn" class="icon-btn" aria-label="Turn sound off">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path class="wave" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11"/><path class="mute" d="M16 9.5l5 5m0-5l-5 5"/></svg>
+    </button>
+    <button id="rules-btn" class="icon-btn" aria-label="Rules">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 9.2a2.9 2.9 0 1 1 4.3 2.5c-.9.5-1.5 1.2-1.5 2.3"/><circle class="dot" cx="12" cy="17.6" r=".6"/></svg>
+    </button>
+  </header>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <footer id="play-bar" class="bar">
+    <div class="status">
+      <span id="turn-chip" class="stone-chip"></span>
+      <span id="status" aria-live="polite"></span>
+    </div>
+    <div class="bar-actions">
+      <button id="swap" class="btn primary" hidden>Swap sides</button>
+      <button id="undo" class="btn ghost">Undo</button>
+      <button id="restart" class="btn ghost">New game</button>
+    </div>
+  </footer>
+
+  <footer id="lesson-bar" class="bar lesson" hidden>
+    <div class="lesson-head">
+      <span id="lesson-count" class="eyebrow"></span>
+      <div id="lesson-dots" class="dots"></div>
+    </div>
+    <h3 id="lesson-title"></h3>
+    <p id="lesson-text" aria-live="polite"></p>
+    <div class="bar-actions">
+      <button id="lesson-prev" class="btn ghost">Back</button>
+      <button id="lesson-next" class="btn primary">Next</button>
+    </div>
+  </footer>
+</section>
+
+<div id="scrim" class="scrim" hidden></div>
+
+<section id="setup" class="sheet" role="dialog" aria-modal="true" aria-labelledby="setup-name" hidden>
+  <div class="grabber"></div>
+  <p id="setup-by" class="eyebrow"></p>
+  <h2 id="setup-name"></h2>
+  <p id="setup-blurb" class="lede"></p>
+  <fieldset class="seg" id="level">
+    <legend>Opponent</legend>
+    <label><input type="radio" name="level" value="easy"><span>Easy</span></label>
+    <label><input type="radio" name="level" value="medium" checked><span>Medium</span></label>
+    <label><input type="radio" name="level" value="hard"><span>Hard</span></label>
+  </fieldset>
+  <fieldset class="seg" id="side">
+    <legend>You play</legend>
+    <label><input type="radio" name="side" value="1" checked><span>White, first</span></label>
+    <label><input type="radio" name="side" value="2"><span>Black, second</span></label>
+  </fieldset>
+  <div class="sheet-actions">
+    <button id="learn" class="btn ghost wide">Learn the rules</button>
+    <button id="play" class="btn primary wide">Play</button>
+  </div>
+  <button id="resume" class="link" hidden>Resume your game in progress</button>
+</section>
+
+<section id="rules" class="sheet" role="dialog" aria-modal="true" aria-labelledby="rules-name" hidden>
+  <div class="grabber"></div>
+  <p class="eyebrow">Rules</p>
+  <h2 id="rules-name"></h2>
+  <ol id="rules-list" class="rules"></ol>
+  <div class="sheet-actions">
+    <button id="rules-lesson" class="btn ghost wide">Interactive lesson</button>
+    <button id="rules-close" class="btn primary wide">Close</button>
+  </div>
+</section>
+
+<section id="result" class="sheet result" role="dialog" aria-modal="true" aria-labelledby="result-title" hidden>
+  <h2 id="result-title"></h2>
+  <p id="result-why" class="lede"></p>
+  <div class="sheet-actions">
+    <button id="result-view" class="btn ghost wide">See the board</button>
+    <button id="result-again" class="btn primary wide">Play again</button>
+  </div>
+</section>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
