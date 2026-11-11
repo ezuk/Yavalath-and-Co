@@ -59,7 +59,7 @@ Fonts: Fraunces and Figtree (SIL Open Font License). 3D rendering: three.js (MIT
 
 ## License
 
-Copyright (c) 2026 ezuk. This app is licensed under
+Copyright (c) nestorgames, the original publisher. This app is licensed under
 [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/)
 (Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International):
 you may copy and share it unmodified, with credit, for non-commercial purposes.
