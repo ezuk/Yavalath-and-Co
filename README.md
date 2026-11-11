@@ -56,3 +56,15 @@ Dieter Stein, Stephen Linhart, Víkingur Fjalar Eiríksson, Élanor Grace Rodeff
 and Nick Bentley. Inventors retain the rights to their games.
 
 Fonts: Fraunces and Figtree (SIL Open Font License). 3D rendering: three.js (MIT).
+
+## License
+
+Copyright (c) 2026 ezuk. This app is licensed under
+[CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/)
+(Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International):
+you may copy and share it unmodified, with credit, for non-commercial purposes.
+You may not distribute modified versions. The full text is in [`LICENSE`](LICENSE).
+
+The license covers this project's own code and content. The games themselves
+remain the property of their inventors, and the bundled fonts and three.js keep
+their own licenses (listed under Credits).
